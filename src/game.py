@@ -1,3 +1,4 @@
+import copy
 import random
 from enum import Enum
 from itertools import combinations
@@ -115,24 +116,43 @@ class FastGame:
         self.deal_starting_hands()
 
     def clone_state(self):
-        # todo
-        pass
+        ret = FastGame(len(self.hands))
+        ret.hands = copy.deepcopy(self.hands)
+        ret.castle = copy.deepcopy(self.castle)
+        self.tavern = self.create_tavern_deck()
+        ret.discard = copy.deepcopy(self.discard)
+        copy.deepcopy(self.played_cards)
+        copy.deepcopy(self.round_played_cards)
+        ret.defense = self.defense
+        ret.joker_used = self.joker_used
+        ret.active_player = self.active_player
+        ret.enemy = self.enemy
+        ret.enemy_hp = self.enemy_hp
+        ret.yields = self.yields
+        ret.won = self.won
+        ret.lost = self.lost
+        ret.phase = self.phase
+        ret.available_jokers = self.available_jokers
+        return ret
 
     def render_state(self):
         print(f"active player: {self.active_player}, phase: {self.phase.name}")
         for i in range(len(self.hands)):
             print(f"player {i}'s hand:")
             for card in self.hands[i]:
-                print(card.name)
+                print(f"{card.name} ", end='')
+            print()
         print(f"current enemy: {self.enemy.name}, hp: {self.enemy_hp}, disabled: {self.joker_used}")
         print("played cards:")
         for card in self.played_cards:
-            print(card.name)
+            print(f"{card.name} ", end='')
+        print()
         print(f"defense: {self.defense}")
         print(f"cards in tavern: {len(self.tavern)}")
         print(f"discard pile ({len(self.discard)} cards):")
         for card in self.discard:
-            print(card.name)
+            print(f"{card.name} ", end='')
+        print()
 
     def make_move(self, move):
         match self.phase:
@@ -180,7 +200,8 @@ class FastGame:
                         return
                 else:
                     self.yields += 1
-                if (self.joker_used or not get_suit(self.enemy) == Suit.Spades) and get_value(self.enemy) - self.defense < 1:
+                if (self.joker_used or not get_suit(self.enemy) == Suit.Spades) and get_value(
+                        self.enemy) - self.defense < 1:
                     self.advance_turn()
                 else:
                     self.phase = Phase.Discard
@@ -200,7 +221,7 @@ class FastGame:
         match self.phase:
             case Phase.Attack:
                 if self.yields < len(self.hands):
-                    ret.add(frozenset()) # yield
+                    ret.add(frozenset())  # yield
                 hand = self.hands[self.active_player]
                 hand_length = len(hand)
                 for i in range(hand_length):
@@ -223,7 +244,7 @@ class FastGame:
                                     total += get_value(card)
                                 if total < 11:
                                     ret.add(frozenset(combo))
-            case Phase.Discard: # todo: maybe it should just discard one at a time to reduce action space
+            case Phase.Discard:  # todo: maybe it should just discard one at a time to reduce action space
                 damage = get_value(self.enemy)
                 if self.joker_used or not get_suit(self.enemy) == Suit.Spades:
                     damage -= self.defense
@@ -275,7 +296,6 @@ class FastGame:
             if len(hand) < self.max_hand_size:
                 return True
         return False
-
 
     def advance_turn(self):
         self.round_played_cards.extend(self.played_cards)
